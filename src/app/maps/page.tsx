@@ -6,6 +6,7 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Alert, AlertDescription } from "~/components/ui/alert";
 import { ExternalLink, MapPin } from "lucide-react";
+import { toast } from "sonner";
 
 const FARE_PER_KM = 15; // Fare in currency units per kilometer
 
@@ -94,6 +95,10 @@ const RideCalculator = () => {
   const [distance, setDistance] = useState(0);
   const [destinationQuery, setDestinationQuery] = useState("");
   const [error, setError] = useState("");
+  const [members, setMembers] = useState(2);
+  const [members1, setMembers1] = useState(3);
+  const [members2, setMembers2] = useState(2);
+  const [members3, setMembers3] = useState(1);
 
   useEffect(() => {
     // Get user's current location if they allow it
@@ -166,10 +171,10 @@ const RideCalculator = () => {
   };
 
   return (
-    <div className="p-4">
-      <Card className="max-w-4xl mx-auto">
+    <div className="bg-black p-4 flex flex-col gap-2">
+      <Card className="max-w-4xl text-white mx-auto bg-black border-gray-50 border-solid border-2">
         <CardHeader>
-          <CardTitle>Ride Fare Calculator</CardTitle>
+          <CardTitle className="text-white">Ride Fare Calculator</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -219,6 +224,67 @@ const RideCalculator = () => {
               </div>
             )}
           </div>
+
+          <div>
+            <p>Members in ride: {members}</p>
+            <Button onClick={() => setMembers(members + 1)}>Join ride</Button>
+          </div>
+        </CardContent>
+      </Card>
+      <Card className="max-w-4xl text-white mx-auto bg-black border-gray-50 border-solid border-2">
+        <CardHeader>Available Rides</CardHeader>
+        <CardContent className="flex flex-auto gap-4">
+          <Card className="w-auto p-3 text-white mx-auto bg-black border-gray-50 border-solid border-2">
+            <div>
+              <p>From: Chennai airport</p>
+              <p>To: Chennai central</p>
+              <p>estimated fare: 300</p>
+              <p>Member count: {members1}</p>
+              <Button
+                className="m-4"
+                onClick={() => {
+                  toast("Your ride will arrive shortly");
+                  setMembers1(members1 + 1);
+                }}
+              >
+                Join ride
+              </Button>
+            </div>
+          </Card>
+          <Card className="w-auto p-3 text-white mx-auto bg-black border-gray-50 border-solid border-2">
+            <div>
+              <p>From: marina mall chennai</p>
+              <p>To: beasant nagar</p>
+              <p>estimated fare: 330</p>
+              <p>Member count: {members2}</p>
+              <Button
+                className="m-4"
+                onClick={() => {
+                  toast("Your ride will arrive shortly");
+                  setMembers2(members2 + 1);
+                }}
+              >
+                Join ride
+              </Button>
+            </div>
+          </Card>
+          <Card className="w-auto p-3 text-white mx-auto bg-black border-gray-50 border-solid border-2">
+            <div>
+              <p>From: vandalur zoo</p>
+              <p>To: alandur metro</p>
+              <p>estimated fare: 330</p>
+              <p>Member count: {members3}</p>
+              <Button
+                className="m-4"
+                onClick={() => {
+                  toast("Your ride will arrive shortly");
+                  setMembers3(members3 + 1);
+                }}
+              >
+                Join ride
+              </Button>
+            </div>
+          </Card>
         </CardContent>
       </Card>
     </div>
