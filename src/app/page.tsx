@@ -1,181 +1,185 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "~/components/ui/card";
-import { Input } from "~/components/ui/input";
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { UserPlus, LogIn, User, Edit, Eye } from "lucide-react";
 import { Button } from "~/components/ui/button";
-import { Alert, AlertDescription } from "~/components/ui/alert";
-import { MapPin, Navigation, DollarSign } from "lucide-react";
+import Link from "next/link";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
-type Location = {
-  lat: number;
-  lng: number;
-};
-
-const RideFareCalculator: React.FC = () => {
-  const [sourceLocation, setSourceLocation] = useState<Location | null>(null);
-  const [destination, setDestination] = useState("");
-  const [fare, setFare] = useState<number | null>(null);
-  const [distance, setDistance] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const mapRef = useRef<google.maps.Map | null>(null);
-
-  // Constants
-  const FARE_PER_KM = 2.5; // Example rate in dollars per kilometer
+export default function Component() {
+  const [mounted, setMounted] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.google && window.google.maps) {
-      const map = new window.google.maps.Map(
-        document.getElementById("map") as HTMLElement,
-        {
-          center: { lat: 40.7128, lng: -74.006 }, // New York City
-          zoom: 12,
-        },
-      );
-      mapRef.current = map;
-    }
+    setMounted(true);
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animationFrameId: number;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    const createNeonLine = () => ({
+      x: Math.random() * canvas.width,
+      y: 0,
+      length: Math.random() * 100 + 50,
+      speed: Math.random() * 2 + 1,
+      color: `hsl(${Math.random() * 60 + 180}, 100%, 50%)`,
+    });
+
+    let neonLines: ReturnType<typeof createNeonLine>[] = Array(50)
+      .fill(null)
+      .map(createNeonLine);
+
+    const animate = () => {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.1)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      neonLines.forEach((line) => {
+        ctx.beginPath();
+        ctx.moveTo(line.x, line.y);
+        ctx.lineTo(line.x, line.y + line.length);
+        ctx.strokeStyle = line.color;
+        ctx.shadowColor = line.color;
+        ctx.shadowBlur = 10;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        line.y += line.speed;
+        if (line.y > canvas.height) {
+          Object.assign(line, createNeonLine());
+        }
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    resizeCanvas();
+    animate();
+
+    window.addEventListener("resize", resizeCanvas);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", resizeCanvas);
+    };
   }, []);
 
-  const handleSetSourceLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setSourceLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setError(null);
-          updateMap();
-        },
-        () => {
-          setError("Unable to retrieve your location");
-        },
-      );
-    } else {
-      setError("Geolocation is not supported by your browser");
-    }
-  };
-
-  const handleSearchWithCustomSource = async () => {
-    if (!sourceLocation) {
-      setError("Please set your source location");
-      return;
-    }
-    if (!destination) {
-      setError("Please enter a destination");
-      return;
-    }
-    setIsLoading(true);
-
-    try {
-      // Use the Google Maps API to calculate the distance and route
-      const directionsService = new window.google.maps.DirectionsService();
-      const directionsRequest = {
-        origin: new window.google.maps.LatLng(
-          sourceLocation.lat,
-          sourceLocation.lng,
-        ),
-        destination,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      };
-      const response = await directionsService.route(directionsRequest);
-      const distance = response.routes[0].legs[0].distance.value / 1000; // Distance in km
-      setDistance(distance);
-      const calculatedFare = distance * FARE_PER_KM;
-      setFare(calculatedFare);
-      setError(null);
-
-      // Update the map with the route
-      const directionsRenderer = new window.google.maps.DirectionsRenderer();
-      directionsRenderer.setDirections(response);
-      directionsRenderer.setMap(mapRef.current);
-    } catch (err) {
-      setError("Error calculating route");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateMap = () => {
-    if (mapRef.current && sourceLocation) {
-      mapRef.current.setCenter(
-        new window.google.maps.LatLng(sourceLocation.lat, sourceLocation.lng),
-      );
-      mapRef.current.setZoom(14);
-    }
-  };
-
   return (
-    <Card className="p-6 max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>Ride Fare Calculator</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {/* Set Source Location */}
-          <div className="flex items-center gap-4">
-            <Button onClick={handleSetSourceLocation}>
-              <MapPin className="w-4 h-4" />
-              Set Source Location
-            </Button>
-            {sourceLocation && (
-              <div className="flex items-center gap-2 text-sm">
-                <span>
-                  Source: {sourceLocation.lat.toFixed(4)},{" "}
-                  {sourceLocation.lng.toFixed(4)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Search Bar */}
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Enter destination"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                className="w-full"
-              />
-            </div>
-            <Button
-              onClick={handleSearchWithCustomSource}
-              disabled={isLoading}
-              className="flex items-center gap-2"
+    <div className="min-h-screen flex flex-col overflow-hidden relative">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full"
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/50 via-blue-900/50 to-teal-800/50 pointer-events-none" />
+      <header className="relative w-full p-4 bg-black/30 backdrop-blur-sm z-10">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 40 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
             >
-              <Navigation className="w-4 h-4" />
-              Calculate Fare
-            </Button>
+              <path
+                d="M20 5L5 35H35L20 5Z"
+                fill="currentColor"
+                fillOpacity="0.5"
+              />
+              <path d="M20 15L10 35H30L20 15Z" fill="currentColor" />
+            </svg>
+            <span className="sr-only">NEO RIDE</span>
           </div>
-
-          {/* Map */}
-          <div id="map" className="bg-gray-100 h-96 rounded-lg" />
-
-          {/* Results */}
-          {distance !== null && fare !== null && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 text-lg">
-                <Navigation className="w-5 h-5" />
-                <span>Distance: {distance.toFixed(2)} km</span>
-              </div>
-              <div className="flex items-center gap-2 text-lg">
-                <DollarSign className="w-5 h-5" />
-                <span>Estimated Fare: ${fare.toFixed(2)}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Error Display */}
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="icon">
+              <UserPlus className="h-5 w-5" />
+              <span className="sr-only">Sign Up</span>
+            </Button>
+            <Button variant="ghost" size="icon">
+              <LogIn className="h-5 w-5" />
+              <span className="sr-only">Sign In</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <User className="h-5 w-5" />
+                  <span className="sr-only">Profile</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem>
+                  <Edit className="mr-2 h-4 w-4" />
+                  <span>Edit Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Eye className="mr-2 h-4 w-4" />
+                  <span>View Account Details</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </header>
+      <main className="relative flex-grow flex flex-col items-center justify-center p-4 z-10">
+        <motion.h1
+          className="text-4xl sm:text-5xl md:text-7xl font-bold mb-8 text-center text-white"
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          Dynamic Ride Sharing
+        </motion.h1>
+        <motion.h2
+          className="text-2xl sm:text-3xl md:text-5xl font-semibold mb-12 text-cyan-300"
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+        >
+          NEO RIDE
+        </motion.h2>
+        {mounted && (
+          <motion.div
+            className="text-xl sm:text-2xl mb-8 text-center text-white"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+          >
+            <p className="mb-4">Choose your neon path:</p>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <motion.button
+                className="px-8 py-3 rounded-full bg-pink-600 text-white font-semibold shadow-lg hover:bg-pink-700 transition duration-300 ease-in-out hover:shadow-pink-500/50"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link href="/maps">I need a ride</Link>
+              </motion.button>
+              <motion.button
+                className="px-8 py-3 rounded-full bg-cyan-600 text-white font-semibold shadow-lg hover:bg-cyan-700 transition duration-300 ease-in-out hover:shadow-cyan-500/50"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Link href="/maps">I can drive</Link>
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </main>
+    </div>
   );
-};
-
-export default RideFareCalculator;
+}
